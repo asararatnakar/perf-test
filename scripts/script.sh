@@ -12,7 +12,7 @@ ENDORSERS="$4"
 : ${CHANNELS:="1"}
 : ${CHAINCODES:="1"}
 : ${ENDORSERS:="4"}
-: ${TIMEOUT:="60"}
+: ${TIMEOUT:="100"}
 COUNTER=0
 MAX_RETRY=5
 
@@ -121,6 +121,8 @@ instantiateChaincode () {
 	do
 		for (( ch=0; $ch<$CHAINCODES; ch++))
 		do
+			#PEER=` expr $ch \/ 4`
+			#setGlobals $PEER
 			peer chaincode instantiate -o $ORDERER_IP:7050 -C $CHANNEL_NAME$i -n mycc$ch -v 1.0 -p github.com/hyperledger/fabric/examples/chaincode/go/chaincode_example02 -c '{"Args":["init","a","1000","b","2000"]}' -P "OR	('Org0MSP.member','Org1MSP.member')" >&log.txt
 			res=$?
 			cat log.txt
@@ -134,19 +136,21 @@ instantiateChaincode () {
 chaincodeInvoke () {
         CHANNEL_NUM=$1
 	CHAIN_NUM=$2
+        PEER=$3
 	peer chaincode invoke -o $ORDERER_IP:7050  -C $CHANNEL_NAME$CHANNEL_NUM -n mycc$CHAIN_NUM -c '{"Args":["invoke","a","b","10"]}' >&log.txt
 	res=$?
 	cat log.txt
-	verifyResult $res "Invoke execution on PEER0 failed "
-	echo "===================== Invoke transaction on PEER0 on $CHANNEL_NAME$CHANNEL_NUM/mycc$CHAIN_NUM is successful ===================== "
+	verifyResult $res "Invoke execution on PEER$PEER failed "
+	echo "===================== Invoke transaction on PEER$PEER on $CHANNEL_NAME$CHANNEL_NUM/mycc$CHAIN_NUM is successful ===================== "
 	echo
 }
 
 chaincodeQuery () {
   CHANNEL_NUM=$1
   CHAIN_NUM=$2
-  RES=$3
-  echo "===================== Querying on PEER$PEER on $CHANNEL_NAME$CHANNEL_NUM/mycc$CHAIN_NUM... ===================== "
+  endr=$3
+  RES=$4
+  echo "===================== Querying on PEER$endr on $CHANNEL_NAME$CHANNEL_NUM/mycc$CHAIN_NUM... ===================== "
   local rc=1
   local starttime=$(date +%s)
 
@@ -155,7 +159,7 @@ chaincodeQuery () {
   while test "$(($(date +%s)-starttime))" -lt "$TIMEOUT" -a $rc -ne 0
   do
      sleep 3
-     echo "Attempting to Query PEER$PEER ...$(($(date +%s)-starttime)) secs"
+     echo "Attempting to Query PEER$endr ...$(($(date +%s)-starttime)) secs"
      peer chaincode query -o $ORDERER_IP:7050 -C $CHANNEL_NAME$CHANNEL_NUM -n mycc$CHAIN_NUM -c '{"Args":["query","a"]}' >&log.txt
      test $? -eq 0 && VALUE=$(cat log.txt | awk '/Query Result/ {print $NF}')
      test "$VALUE" = "$RES" && let rc=0
@@ -163,17 +167,20 @@ chaincodeQuery () {
   echo
   cat log.txt
   if test $rc -eq 0 ; then
-	echo "===================== Query on PEER0 on $CHANNEL_NAME$CHANNEL_NUM/mycc$CHAIN_NUM is successful ===================== "
+	echo "===================== Query on PEER$endr on $CHANNEL_NAME$CHANNEL_NUM/mycc$CHAIN_NUM is successful ===================== "
 	echo
   else
-	echo "!!!!!!!!!!!!!!! Query result on PEER0 is INVALID !!!!!!!!!!!!!!!!"
+	echo "!!!!!!!!!!!!!!! Query result on PEER$endr is INVALID !!!!!!!!!!!!!!!!"
         echo "================== ERROR !!! FAILED to execute End-2-End Scenario =================="
 	echo
 	echo "Total execution time $(($(date +%s)-START_TIME)) secs"
 	echo
+	exit 1
   fi
 }
 
+CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/orderer/localMspConfig
+CORE_PEER_LOCALMSPID="OrdererMSP"
 ## Create channel
 for (( ch=0; $ch<$CHANNELS; ch++))
 do
@@ -194,9 +201,13 @@ installChaincode
 #Instantiate chaincode on Peer2/Org1
 echo "Instantiating chaincode on all channels on PEER0 ..."
 instantiateChaincode 0
+#for (( endorser=0; $endorser<4; endorser++))
+#do
+#	instantiateChaincode $endorser
+#done
 
 ## Fix PEER0 on all channels
-setGlobals 0
+#setGlobals 0
 
 #Invoke/Query on all chaincodes on all channels
 echo "send Invokes/Queries on all channels ..."
@@ -204,9 +215,11 @@ for (( ch=0; $ch<$CHANNELS; ch++))
 do
 	for (( chain=0; $chain<$CHAINCODES; chain++))
 	do
-		chaincodeQuery $ch $chain "1000"
-		chaincodeInvoke $ch $chain
-		chaincodeQuery $ch $chain "990"
+		PEER_NUMBER=` expr $chain \% 4 `
+		setGlobals "$PEER_NUMBER"
+		chaincodeQuery $ch $chain $PEER_NUMBER "1000"
+		chaincodeInvoke $ch $chain $PEER_NUMBER
+		chaincodeQuery $ch $chain $PEER_NUMBER "990"
 	done
 done
 

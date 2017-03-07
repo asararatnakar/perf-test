@@ -61,6 +61,9 @@ function networkDown () {
 	clearContainers
 	#Cleanup images
 	removeUnwantedImages
+        #remove orderer and config txn
+        rm -rf $PWD/crypto/orderer/orderer.block
+        rm -rf $PWD/crypto/orderer/channel*.tx
 }
 
 validateArgs

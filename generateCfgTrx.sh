@@ -19,13 +19,13 @@ echo "Building configtxgen"
 make configtxgen
 
 echo "Generating genesis block"
-configtxgen -profile TwoOrgs -outputBlock orderer.block
+./build/bin/configtxgen -profile TwoOrgs -outputBlock orderer.block
 mv orderer.block examples/e2e/crypto/orderer/orderer.block
 
 for (( i=0; $i<$CHANNEL_COUNT; i++))
 do
 	echo "Generating channel configuration transaction for channel '$CHANNEL_NAME$i'"
-	configtxgen -profile TwoOrgs -outputCreateChannelTx channel$i.tx -channelID $CHANNEL_NAME$i
+	./build/bin/configtxgen -profile TwoOrgs -outputCreateChannelTx channel$i.tx -channelID $CHANNEL_NAME$i
 	mv channel$i.tx examples/e2e/crypto/orderer/channel$i.tx
 done
 

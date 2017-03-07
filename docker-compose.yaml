@@ -2,6 +2,32 @@ version: '2'
 
 services:
 
+  zookeeper:
+    image: hyperledger/fabric-zookeeper
+    container_name: zookeeper
+
+  kafka0:
+    image: hyperledger/fabric-kafka
+    environment:
+      - KAFKA_BROKER_ID=0
+      - KAFKA_DEFAULT_REPLICATION_FACTOR=2
+      - KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE=false
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+    container_name: kafka0
+    depends_on:
+      - zookeeper
+
+  kafka1:
+    image: hyperledger/fabric-kafka
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_DEFAULT_REPLICATION_FACTOR=2
+      - KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE=false
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+    container_name: kafka1
+    depends_on:
+      - zookeeper
+
   orderer:
     container_name: orderer
     image: hyperledger/fabric-orderer
@@ -12,10 +38,14 @@ services:
       - ORDERER_GENERAL_GENESISFILE=/var/hyperledger/orderer/orderer.block
       - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
       - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/localMspConfig
-    working_dir: /opt/gopath/src/github.com/hyperledger/fabric
+      - CONFIGTX_ORDERER_ORDERERTYPE=kafka
+      - CONFIGTX_ORDERER_KAFKA_BROKERS=[kafka0:9092,kafka1:9092]
     command: orderer
     volumes:
     - ./crypto/orderer:/var/hyperledger/orderer
+    depends_on:
+      - kafka0
+      - kafka1
     ports:
       - 7050:7050
 
