@@ -57,6 +57,7 @@ services:
     environment:
       - CORE_PEER_ID=peer0
       - CORE_PEER_COMMITTER_LEDGER_ORDERER=orderer:7050
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0:7051
       - CORE_PEER_LOCALMSPID=Org0MSP
       - CORE_PEER_GOSSIP_ORGLEADER=true
     volumes:
@@ -76,6 +77,7 @@ services:
     environment:
       - CORE_PEER_ID=peer1
       - CORE_PEER_GOSSIP_BOOTSTRAP=peer0:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1:7051
       - CORE_PEER_COMMITTER_LEDGER_ORDERER=orderer:7050
       - CORE_PEER_LOCALMSPID=Org0MSP
       - CORE_PEER_GOSSIP_ORGLEADER=false
@@ -96,8 +98,8 @@ services:
       service: peer-base
     environment:
       - CORE_PEER_ID=peer2
-      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0:7051
       - CORE_PEER_COMMITTER_LEDGER_ORDERER=orderer:7050
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer2:7051
       - CORE_PEER_LOCALMSPID=Org1MSP
       - CORE_PEER_GOSSIP_ORGLEADER=true
     volumes:
@@ -118,8 +120,9 @@ services:
       service: peer-base
     environment:
       - CORE_PEER_ID=peer3
-      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0:7051
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer2:7051
       - CORE_PEER_COMMITTER_LEDGER_ORDERER=orderer:7050
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer3:7051
       - CORE_PEER_LOCALMSPID=Org1MSP
       - CORE_PEER_GOSSIP_ORGLEADER=false
     volumes:

@@ -5,8 +5,8 @@ services:
     environment:
       - CORE_PEER_ADDRESSAUTODETECT=true
       - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
-      - CORE_LOGGING_LEVEL=ERROR
-      #- CORE_LOGGING_LEVEL=DEBUG
+      #- CORE_LOGGING_LEVEL=ERROR
+      - CORE_LOGGING_LEVEL=DEBUG
       - CORE_NEXT=true
       - CORE_PEER_ENDORSER_ENABLED=true
       - CORE_PEER_PROFILE_ENABLED=true
