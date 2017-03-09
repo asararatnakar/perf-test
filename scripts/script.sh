@@ -208,11 +208,15 @@ for (( ch=0; $ch<$CHANNELS; ch++))
 do
 	for (( chain=0; $chain<$CHAINCODES; chain++))
 	do
-		PEER_NUMBER=` expr $chain \% 4 `
-		setGlobals "$PEER_NUMBER"
-		chaincodeQuery $ch $chain $PEER_NUMBER "1000"
-		chaincodeInvoke $ch $chain $PEER_NUMBER
-		chaincodeQuery $ch $chain $PEER_NUMBER "990"
+                AVAL=1000
+		for (( peer_number=0;peer_number<4;peer_number++))
+		do
+			setGlobals "$peer_number"
+			chaincodeQuery $ch $chain $peer_number "$AVAL"
+			chaincodeInvoke $ch $chain $peer_number
+			AVAL=` expr $AVAL - 10 `
+			chaincodeQuery $ch $chain $peer_number "$AVAL"
+		done
 	done
 done
 
