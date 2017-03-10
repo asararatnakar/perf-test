@@ -92,7 +92,7 @@ Organizations:
         # ID to load the MSP definition as
         ID: Org1MSP
 
-        MSPDir: examples/e2e/crypto/peer/peer2/localMspConfig
+        MSPDir: examples/e2e/crypto/peer/peer3/localMspConfig
 
         # BCCSP (Blockchain crypto provider): Select which crypto implementation or
         # library to use
@@ -110,7 +110,7 @@ Organizations:
             # AnchorPeers defines the location of peers which can be used
             # for cross org gossip communication.  Note, this value is only
             # encoded in the genesis block in the Application section context
-            - Host: peer2
+            - Host: peer3
               Port: 7051
 
 ################################################################################
