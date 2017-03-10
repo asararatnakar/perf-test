@@ -1,5 +1,5 @@
-End-to-End Flow
-===============
+e2e_perf - End-to-End Flow test on multiple channels and chaincodes
+===================================================================
 
 The end-to-end verification demonstrates usage of the configuration
 transaction tool for orderer bootstrap and channel creation. The tool
