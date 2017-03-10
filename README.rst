@@ -18,7 +18,7 @@ Prerequisites
 -  Follow the steps for setting up a `development
    environment <http://hyperledger-fabric.readthedocs.io/en/latest/dev-setup/devenv.html>`__
 
--  Clone the Fabric code base.
+-  If not already done, clone the Fabric code base.
 
    .. code:: bash
 
@@ -30,6 +30,14 @@ Prerequisites
 
        git clone https://github.com/hyperledger/fabric.git
 
+-  If not already done, clone the e2e_perf tool.
+
+   .. code:: bash
+
+       cd $GOPATH/src/github.com/hyperledger/fabric/examples
+       git clone https://github.com/asararatnakar/perf-test
+       mv perf-test e2e
+   
 -  Make the ``configtxgen`` tool.
 
    .. code:: bash
@@ -37,7 +45,8 @@ Prerequisites
        cd $GOPATH/src/github.com/hyperledger/fabric/devenv
        vagrant up
        vagrant ssh
-       # ensure sure you are in the /fabric directory where the Makefile resides
+       # ensure sure you are in the /fabric directory where the Makefile resides:
+       cd $GOPATH/src/github.com/hyperledger/fabric
        make configtxgen
 
 -  Make the peer and orderer images.
@@ -45,7 +54,7 @@ Prerequisites
    .. code:: bash
 
        # make sure you are in vagrant and in the /fabric directory
-       make peer-docker orderer-docker
+       make docker
 
    Execute a ``docker images`` command in your terminal. If the images
    compiled successfully, you should see an output similar to the
@@ -66,128 +75,22 @@ Prerequisites
        hyperledger/fabric-baseimage   x86_64-0.3.0                    f4751a503f02        4 weeks ago         1.27 GB
        hyperledger/fabric-baseos      x86_64-0.3.0                    c3a4cf3b3350        4 weeks ago         161 MB
 
-Configuration Transaction Generator
------------------------------------
-
-The `configtxgen
-tool <https://github.com/hyperledger/fabric/blob/master/docs/source/configtxgen.rst>`__
-is used to create two artifacts: - orderer **bootstrap block** - fabric
-**channel configuration transaction**
-
-The orderer block is the genesis block for the ordering service, and the
-channel transaction file is broadcast to the orderer at channel creation
-time.
-
-The ``configtx.yaml`` contains the definitions for the sample network.
-There are two members, each managing and maintaining two peer nodes.
-Inspect this file to better understand the corresponding cryptographic
-material tied to the member components. The ``/crypto`` directory
-contains the admin certs, ca certs, private keys for each entity, and
-the signing certs for each entity.
-
-For ease of use, a script - ``generateCfgTrx.sh`` - is provided. The
-script will generate the two configuration artifacts.
-
-Run the shell script
-^^^^^^^^^^^^^^^^^^^^
-
-Make sure you are in the ``examples/e2e`` directory and in your
-vagrant environment. You can elect to pass in a unique name for your
-channel or simply execute the script without the ``channel-ID``
-parameter. If you choose not to pass in a unique name, then a channel
-with the default name of ``mychannel`` will be generated.
-
-.. code:: bash
-
-    cd examples/e2e
-    # note the <channel-ID> parm is optional
-    ./generateCfgTrx.sh <channel-ID>
-
-After you run the shell script, you should see an output in your
-terminal similar to the following:
-
-.. code:: bash
-
-    2017/02/28 17:01:52 Generating new channel configtx
-    2017/02/28 17:01:52 Creating no-op MSP instance
-    2017/02/28 17:01:52 Obtaining default signing identity
-    2017/02/28 17:01:52 Creating no-op signing identity instance
-    2017/02/28 17:01:52 Serializing identity
-    2017/02/28 17:01:52 signing message
-    2017/02/28 17:01:52 signing message
-    2017/02/28 17:01:52 Writing new channel tx
-
-These configuration transactions will bundle the crypto material for the
-participating members and their network components and output an orderer
-genesis block and channel transaction artifact. These two artifacts are
-required for a functioning transactional network with
-sign/verify/authenticate capabilities.
-
-Manually generate the artifacts (optional)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-In your vagrant environment, navigate to the ``/common/configtx/tool``
-directory and replace the ``configtx.yaml`` file with the supplied yaml
-file in the ``/e2e`` directory. Then return to the ``/e2e``
-directory.
-
-.. code:: bash
-
-    # Generate orderer bootstrap block
-    configtxgen -profile TwoOrgs -outputBlock <block-name>
-    # example: configtxgen -profile TwoOrgs -outputBlock orderer.block
-
-    # Generate channel configuration transaction
-    configtxgen -profile TwoOrgs -outputCreateChannelTx <cfg txn name> -channelID <channel-id>
-    # example: configtxgen -profile TwoOrgs -outputCreateChannelTx channel.tx -channelID mychannel
-
-Run the end-to-end test
------------------------
-
-Make sure you are in the ``/e2e`` directory. Then use docker-compose
-to spawn the network entities and drive the tests.
-
-.. code:: bash
-
-    [CHANNEL_NAME=<channel-id>] docker-compose up -d
-
-If you created a unique channel name, be sure to pass in that parameter.
-For example,
-
-.. code:: bash
-
-    CHANNEL_NAME=abc docker-compose up -d
-
-Wait, 30 seconds. Behind the scenes, there are transactions being sent
-to the peers. Execute a ``docker ps`` to view your active containers.
-You should see an output identical to the following:
-
-.. code:: bash
-
-    vagrant@hyperledger-devenv:v0.3.0-4eec836:/opt/gopath/src/github.com/hyperledger/fabric/examples/e2e$ docker ps
-    CONTAINER ID        IMAGE                        COMMAND                  CREATED              STATUS              PORTS                                              NAMES
-    45e3e114f7a2        dev-peer3-mycc-1.0           "chaincode -peer.a..."   4 seconds ago        Up 4 seconds                                                           dev-peer3-mycc-1.0
-    5970f740ad2b        dev-peer0-mycc-1.0           "chaincode -peer.a..."   24 seconds ago       Up 23 seconds                                                          dev-peer0-mycc-1.0
-    b84808d66e99        dev-peer2-mycc-1.0           "chaincode -peer.a..."   48 seconds ago       Up 47 seconds                                                          dev-peer2-mycc-1.0
-    16d7d94c8773        hyperledger/fabric-peer      "peer node start -..."   About a minute ago   Up About a minute   0.0.0.0:10051->7051/tcp, 0.0.0.0:10053->7053/tcp   peer3
-    3561a99e35e6        hyperledger/fabric-peer      "peer node start -..."   About a minute ago   Up About a minute   0.0.0.0:9051->7051/tcp, 0.0.0.0:9053->7053/tcp     peer2
-    0baad3047d92        hyperledger/fabric-peer      "peer node start -..."   About a minute ago   Up About a minute   0.0.0.0:8051->7051/tcp, 0.0.0.0:8053->7053/tcp     peer1
-    1216896b7b4f        hyperledger/fabric-peer      "peer node start -..."   About a minute ago   Up About a minute   0.0.0.0:7051->7051/tcp, 0.0.0.0:7053->7053/tcp     peer0
-    155ff8747b4d        hyperledger/fabric-orderer   "orderer"                About a minute ago   Up About a minute   0.0.0.0:7050->7050/tcp                             orderer
-
 All in one
-^^^^^^^^^^
+----------
 
-You can also generate the artifacts and drive the tests using a single
+You can generate the artifacts and drive the tests using a single
 shell script. The ``configtxgen`` and ``docker-compose`` commands are
-embedded in the script.
+embedded in the script. More details are explained below, to execute
+specific steps manually. The quickest way to run the test is:
 
 .. code:: bash
 
-    ./network_setup.sh up <channel-ID>
+    ./network_setup.sh up [<channel-ID> [<numChannels> [<numChainCodesPerChannel> [<numPeers>]]]]
 
-Once again, if you choose not to pass the ``channel-ID`` parameter, then
-your channel will default to ``mychannel``.
+If you choose not to pass the ``channel-ID`` parameter, then
+your channel will default to ``mychannel``. Other defaults are:
+numChannels:2 , numChainCodesPerChannel:2 , numPeers:4 .
+Note the max number of Peers is 4. It depends on the number of pre-baked certificates that come with the tool.
 
 What's happening behind the scenes?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -275,9 +178,6 @@ You should see the following output:
     2017-02-28 04:31:20.843 UTC [msp] Sign -> DEBU 005 Sign: digest: 52F1A41B7B0B08CF3FC94D9D7E916AC4C01C54399E71BC81D551B97F5619AB54
     Query Result: 90
     2017-02-28 04:31:30.425 UTC [main] main -> INFO 006 Exiting.....
-    ===================== Query on chaincode on PEER3 on channel 'mychannel' is successful =====================
-
-    ===================== All GOOD, End-2-End execution completed =====================
 
 How can I see the chaincode logs?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -304,6 +204,115 @@ output from each container:
     04:31:30.420 [BCCSP_FACTORY] DEBU : Initialize BCCSP [SW]
     ex02 Invoke
     Query Response:{"Name":"a","Amount":"90"}
+
+Configuration Transaction Generator
+-----------------------------------
+
+The `configtxgen
+tool <https://github.com/hyperledger/fabric/blob/master/docs/source/configtxgen.rst>`__
+is used to create two artifacts: - orderer **bootstrap block** - fabric
+**channel configuration transaction**
+
+The orderer block is the genesis block for the ordering service, and the
+channel transaction file is broadcast to the orderer at channel creation
+time.
+
+The ``configtx.yaml`` contains the definitions for the sample network.
+There are two members, each managing and maintaining two peer nodes.
+Inspect this file to better understand the corresponding cryptographic
+material tied to the member components. The ``/crypto`` directory
+contains the admin certs, ca certs, private keys for each entity, and
+the signing certs for each entity.
+
+For ease of use, a script - ``generateCfgTrx.sh`` - is provided. The
+script will generate the two configuration artifacts.
+
+Run the shell script
+^^^^^^^^^^^^^^^^^^^^
+
+Make sure you are in the ``examples/e2e`` directory and in your
+vagrant environment. You can elect to pass in a unique name for your
+channel or simply execute the script without the ``channel-ID``
+parameter. If you choose not to pass in a unique name, then a channel
+with the default name of ``mychannel`` will be generated.
+
+.. code:: bash
+
+    cd examples/e2e
+    # note the <channel-ID> parm is optional
+    ./generateCfgTrx.sh <channel-ID>
+
+After you run the shell script, you should see an output in your
+terminal similar to the following:
+
+.. code:: bash
+
+    2017/02/28 17:01:52 Generating new channel configtx
+    2017/02/28 17:01:52 Creating no-op MSP instance
+    2017/02/28 17:01:52 Obtaining default signing identity
+    2017/02/28 17:01:52 Creating no-op signing identity instance
+    2017/02/28 17:01:52 Serializing identity
+    2017/02/28 17:01:52 signing message
+    2017/02/28 17:01:52 signing message
+    2017/02/28 17:01:52 Writing new channel tx
+
+These configuration transactions will bundle the crypto material for the
+participating members and their network components and output an orderer
+genesis block and channel transaction artifact. These two artifacts are
+required for a functioning transactional network with
+sign/verify/authenticate capabilities.
+
+Manually generate the artifacts (optional, instead of executing generateCfgTrx.sh)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In your vagrant environment, navigate to the ``/common/configtx/tool``
+directory and replace the ``configtx.yaml`` file with the supplied yaml
+file in the ``/e2e`` directory. Then return to the ``/e2e``
+directory.
+
+.. code:: bash
+
+    # Generate orderer bootstrap block
+    configtxgen -profile TwoOrgs -outputBlock <block-name>
+    # example: configtxgen -profile TwoOrgs -outputBlock orderer.block
+
+    # Generate channel configuration transaction
+    configtxgen -profile TwoOrgs -outputCreateChannelTx <cfg txn name> -channelID <channel-id>
+    # example: configtxgen -profile TwoOrgs -outputCreateChannelTx channel.tx -channelID mychannel
+
+Run the end-to-end test
+-----------------------
+
+Make sure you are in the ``/e2e`` directory. Then use docker-compose
+to spawn the network entities and drive the tests.
+
+.. code:: bash
+
+    [CHANNEL_NAME=<channel-id>] docker-compose up -d
+
+If you created a unique channel name, be sure to pass in that parameter.
+For example,
+
+.. code:: bash
+
+    CHANNEL_NAME=abc docker-compose up -d
+
+Wait, 30 seconds. Behind the scenes, there are transactions being sent
+to the peers. Execute a ``docker ps`` to view your active containers.
+You should see an output identical to the following:
+
+.. code:: bash
+
+    vagrant@hyperledger-devenv:v0.3.0-4eec836:/opt/gopath/src/github.com/hyperledger/fabric/examples/e2e$ docker ps
+    CONTAINER ID        IMAGE                        COMMAND                  CREATED              STATUS              PORTS                                              NAMES
+    45e3e114f7a2        dev-peer3-mycc-1.0           "chaincode -peer.a..."   4 seconds ago        Up 4 seconds                                                           dev-peer3-mycc-1.0
+    5970f740ad2b        dev-peer0-mycc-1.0           "chaincode -peer.a..."   24 seconds ago       Up 23 seconds                                                          dev-peer0-mycc-1.0
+    b84808d66e99        dev-peer2-mycc-1.0           "chaincode -peer.a..."   48 seconds ago       Up 47 seconds                                                          dev-peer2-mycc-1.0
+    16d7d94c8773        hyperledger/fabric-peer      "peer node start -..."   About a minute ago   Up About a minute   0.0.0.0:10051->7051/tcp, 0.0.0.0:10053->7053/tcp   peer3
+    3561a99e35e6        hyperledger/fabric-peer      "peer node start -..."   About a minute ago   Up About a minute   0.0.0.0:9051->7051/tcp, 0.0.0.0:9053->7053/tcp     peer2
+    0baad3047d92        hyperledger/fabric-peer      "peer node start -..."   About a minute ago   Up About a minute   0.0.0.0:8051->7051/tcp, 0.0.0.0:8053->7053/tcp     peer1
+    1216896b7b4f        hyperledger/fabric-peer      "peer node start -..."   About a minute ago   Up About a minute   0.0.0.0:7051->7051/tcp, 0.0.0.0:7053->7053/tcp     peer0
+    155ff8747b4d        hyperledger/fabric-orderer   "orderer"                About a minute ago   Up About a minute   0.0.0.0:7050->7050/tcp                             orderer
 
 Manually create the channel and join peers through CLI
 ------------------------------------------------------
