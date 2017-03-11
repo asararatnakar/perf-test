@@ -104,7 +104,7 @@ installChaincode () {
 		do
 			PEER=$i
 			setGlobals $PEER
-			peer chaincode install -o $ORDERER_IP:7050 -n mycc$ch -v 1 -p github.com/hyperledger/fabric/examples/chaincode/go/chaincode_example02 >&log.txt
+			peer chaincode install -n mycc$ch -v 1 -p github.com/hyperledger/fabric/examples/chaincode/go/chaincode_example02 >&log.txt
 			res=$?
 			cat log.txt
 		        verifyResult $res "Chaincode 'mycc$ch' installation on remote peer PEER$PEER has Failed"
@@ -160,7 +160,7 @@ chaincodeQuery () {
   do
      sleep 3
      echo "Attempting to Query PEER$peer ...$(($(date +%s)-starttime)) secs"
-     peer chaincode query -o $ORDERER_IP:7050 -C $CHANNEL_NAME$channel_num -n mycc$chain_num -c '{"Args":["query","a"]}' >&log.txt
+     peer chaincode query -C $CHANNEL_NAME$channel_num -n mycc$chain_num -c '{"Args":["query","a"]}' >&log.txt
      test $? -eq 0 && VALUE=$(cat log.txt | awk '/Query Result/ {print $NF}')
      test "$VALUE" = "$res" && let rc=0
   done

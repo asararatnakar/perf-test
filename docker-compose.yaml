@@ -38,6 +38,7 @@ services:
       - ORDERER_GENERAL_GENESISFILE=/var/hyperledger/orderer/orderer.block
       - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
       - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/localMspConfig
+      - CONFIGTX_ORDERER_BATCHTIMEOUT=1s
       - CONFIGTX_ORDERER_ORDERERTYPE=kafka
       - CONFIGTX_ORDERER_KAFKA_BROKERS=[kafka0:9092,kafka1:9092]
     command: orderer
