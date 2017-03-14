@@ -1,25 +1,28 @@
 #!/bin/bash
 
-UP_DOWN=$1
-CH_NAME=$2
-CHANNELS=$3
-CHAINCODES=$4
-ENDORSERS=$5
-
-: ${CH_NAME:="mychannel"}
-: ${CHANNELS:="1"}
-: ${CHAINCODES:="1"}
-: ${ENDORSERS:="4"}
-COMPOSE_FILE=docker-compose.yaml
-
-function printHelp () {
-	echo "Usage: ./network_setup <up|down|retstart> [channel-name] [total-channels [chaincodes] [endorsers count]"
+function usage () {
+	echo
+	echo "======================================================================================================"
+	echo "Usage: "
+	echo "      network_setup.sh [channel-name] [total-channels] [chaincodes] [endorsers count] [tls]  <up|down|retstart>"
+	echo
+	echo "./network_setup.sh -n 'channel-name' -C 2 -c 3 -e 4 restart"
+	echo "		-n       channel name"
+	echo "		-C       # of Channels that can be created"
+	echo "		-c       # of Chaincodes that can be created"
+	echo "		-e       # of endorsers that can be used for tests"
+	echo "		-t       Enable TLS"
+	echo "		up       Launch the network and start the test"
+	echo "		down     teardown the network and the test"
+	echo "		retstart Restart the network and start the test"
+	echo "======================================================================================================"
+	echo
 }
 
 function validateArgs () {
 	if [ -z "${UP_DOWN}" ]; then
-		echo "Option up / down / restart not mentioned"
-		printHelp
+		echo "One of the option up / down / restart is missing"
+		usage
 		exit 1
 	fi
 }
@@ -43,6 +46,8 @@ function removeUnwantedImages() {
 }
 
 function networkUp () {
+	echo "============= Starting the network with below configurations ================"
+	printOptions
 	CURRENT_DIR=$PWD
         source generateCfgTrx.sh $CH_NAME $CHANNELS
 	cd $CURRENT_DIR
@@ -66,17 +71,73 @@ function networkDown () {
         rm -rf $PWD/crypto/orderer/channel*.tx
 }
 
+##process all the options
+while getopts "tC:c:e:n:h" opt; do
+  case "${opt}" in
+    n)
+      CH_NAME="$OPTARG"
+      ;;
+    C)
+      CHANNELS="$OPTARG"
+      ;;
+    c)
+      CHAINCODES="$OPTARG"
+      ;;
+    e)
+      ENDORSERS="$OPTARG"
+      ;;
+    t)
+      TLS="y"
+      ;;
+    h)
+      usage
+      exit 0
+      ;;
+    f)
+      COMPOSE_FILE="$OPTARG"
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      usage
+      exit 1
+      ;;
+  esac
+done
+
+## this is to read the argument up/down/restart
+shift $((OPTIND-1))
+
+: ${CH_NAME:="mychannel"}
+: ${CHANNELS:="1"}
+: ${CHAINCODES:="1"}
+: ${ENDORSERS:="4"}
+: ${TLS:="N"}
+: ${COMPOSE_FILE:="docker-compose.yaml"}
+
+UP_DOWN="$@"
+
 validateArgs
 
+
+function printOptions () {
+	echo "------- Channel name : $CH_NAME"
+	echo "------- Total Channels : $CHANNELS"
+	echo "------- Total Chaincodes : $CHAINCODES"
+	echo "------- Total Endorsers : $ENDORSERS"
+        echo "------- Used Docker-compose : $COMPOSE_FILE"
+}
 #Create the network using docker compose
 if [ "${UP_DOWN}" == "up" ]; then
 	networkUp
 elif [ "${UP_DOWN}" == "down" ]; then ## Clear the network
+	echo "================== Clearing the network ================"
+	printOptions
 	networkDown
 elif [ "${UP_DOWN}" == "restart" ]; then ## Restart the network
+	echo "================== RESTART ================"
 	networkDown
 	networkUp
 else
-	printHelp
+	usage
 	exit 1
 fi

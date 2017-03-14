@@ -139,7 +139,7 @@ What's happening behind the scenes?
 
 -  A query is sent to ``PEER3`` for the value of "a". This starts a
    third chaincode container by the name of ``dev-peer3-mycc-1.0``. A
-   value of 90 is returned, correctly reflecting the previous
+   value of ABCDEFGHIJKLMNOPQRSTUVWXYZ is returned, correctly reflecting the previous
    transaction during which the value for key "a" was modified by 10.
 
 What does this demonstrate?
@@ -176,7 +176,7 @@ You should see the following output:
     2017-02-28 04:31:20.842 UTC [msp] GetDefaultSigningIdentity -> DEBU 003 Obtaining default signing identity
     2017-02-28 04:31:20.843 UTC [msp] Sign -> DEBU 004 Sign: plaintext: 0A8F050A59080322096D796368616E6E...6D7963631A0A0A0571756572790A0161
     2017-02-28 04:31:20.843 UTC [msp] Sign -> DEBU 005 Sign: digest: 52F1A41B7B0B08CF3FC94D9D7E916AC4C01C54399E71BC81D551B97F5619AB54
-    Query Result: 90
+    Query Result: ABCDEFGHIJKLMNOPQRSTUVWXYZ
     2017-02-28 04:31:30.425 UTC [main] main -> INFO 006 Exiting.....
 
 How can I see the chaincode logs?
@@ -190,20 +190,6 @@ output from each container:
 
     $ docker logs dev-peer2-mycc-1.0
     04:30:45.947 [BCCSP_FACTORY] DEBU : Initialize BCCSP [SW]
-    ex02 Init
-    Aval = 100, Bval = 200
-
-    $ docker logs dev-peer0-mycc-1.0
-    04:31:10.569 [BCCSP_FACTORY] DEBU : Initialize BCCSP [SW]
-    ex02 Invoke
-    Query Response:{"Name":"a","Amount":"100"}
-    ex02 Invoke
-    Aval = 90, Bval = 210
-
-    $ docker logs dev-peer3-mycc-1.0
-    04:31:30.420 [BCCSP_FACTORY] DEBU : Initialize BCCSP [SW]
-    ex02 Invoke
-    Query Response:{"Name":"a","Amount":"90"}
 
 Configuration Transaction Generator
 -----------------------------------
@@ -451,7 +437,7 @@ Install the sample go code onto one of the four peer nodes
 
 .. code:: bash
 
-    peer chaincode install -n mycc -v 1.0 -p github.com/hyperledger/fabric/examples/chaincode/go/chaincode_example02
+    peer chaincode install -n mycc -v 1.0 -p github.com/hyperledger/fabric/examples/chaincode/go/newkeyperinvoke
 
 Instantiate chaincode and define the endorsement policy
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -465,7 +451,7 @@ this is ``PEER2`` or ``PEER3``
 .. code:: bash
 
     #
-    peer chaincode instantiate -o orderer:7050 -C mychannel -n mycc -v 1.0 -p github.com/hyperledger/fabric/examples/chaincode/go/chaincode_example02 -c '{"Args":["init","a", "100", "b","200"]}' -P "AND('Org1MSP.member')"
+    peer chaincode instantiate -o orderer:7050 -C mychannel -n mycc -v 1.0 -p github.com/hyperledger/fabric/examples/chaincode/go/newkeyperinvoke -c '{"Args":[""]}' -P "AND('Org1MSP.member')"
 
 See the `endorsement
 policies <http://hyperledger-fabric.readthedocs.io/en/latest/endorsement-policies/>`__
@@ -476,7 +462,7 @@ Invoke chaincode
 
 .. code:: bash
 
-    peer chaincode invoke -o orderer:7050 -C mychannel -n mycc -c '{"Args":["invoke","a","b","10"]}'
+    peer chaincode invoke -o orderer:7050 -C mychannel -n mycc -c '{"function":"invoke","Args":["put", "key", "ABCDEFGHIJKLMNOPQRSTUVWXYZ"]}'
 
 **NOTE**: Make sure to wait a few seconds for the operation to complete.
 
@@ -485,13 +471,13 @@ Query chaincode
 
 .. code:: bash
 
-    peer chaincode query -C mychannel -n mycc -c '{"Args":["query","a"]}'
+    peer chaincode query -C mychannel -n mycc -c '{"function":"invoke","Args":["get","key"]}'
 
 The result of the above command should be as below:
 
 .. code:: bash
 
-    Query Result: 90
+    Query Result: ABCDEFGHIJKLMNOPQRSTUVWXYZ
 
 Using the native binaries
 -------------------------
@@ -598,7 +584,7 @@ Install chaincode on the peer:
 
 .. code:: bash
 
-    peer chaincode install -n mycc -v 1.0 -p github.com/hyperledger/fabric/examples/chaincode/go/chaincode_example02
+    peer chaincode install -n mycc -v 1.0 -p github.com/hyperledger/fabric/examples/chaincode/go/newkeyperinvoke
 
 Make sure the chaincode is in the filesystem:
 
@@ -615,7 +601,7 @@ Instantiate the chaincode:
 
 .. code:: bash
 
-    peer chaincode instantiate -o 127.0.0.1:7050 -C mychannel -n mycc -v 1.0 -p github.com/hyperledger/fabric/examples/chaincode/go/chaincode_example02 -c '{"Args":["init","a", "100", "b","200"]}'
+    peer chaincode instantiate -o 127.0.0.1:7050 -C mychannel -n mycc -v 1.0 -p github.com/hyperledger/fabric/examples/chaincode/go/newkeyperinvoke -c '{"Args":[""]}'
 
 Check your active containers:
 
@@ -637,7 +623,7 @@ Issue an invoke to move "10" from "a" to "b":
 
 .. code:: bash
 
-    peer chaincode invoke -o 127.0.0.1:7050 -C mychannel -n mycc -c '{"Args":["invoke","a","b","10"]}'
+    peer chaincode invoke -o 127.0.0.1:7050 -C mychannel -n mycc -c '{"function":"invoke","Args":["put", "key", "ABCDEFGHIJKLMNOPQRSTUVWXYZ"]}'
 
 Wait a few seconds for the operation to complete
 
@@ -648,8 +634,8 @@ Query for the value of "a":
 
 .. code:: bash
 
-    # this should return 90
-    peer chaincode query -C mychannel -n mycc -c '{"Args":["query","a"]}'
+    # this should return ABCDEFGHIJKLMNOPQRSTUVWXYZ
+    peer chaincode query -C mychannel -n mycc -c '{"function":"invoke","Args":["get","key"]}'
 
 Don't forget to clear ledger folder ``/var/hyperledger/`` after each
 run!

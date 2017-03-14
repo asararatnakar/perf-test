@@ -12,30 +12,30 @@ ENDORSERS="$4"
 : ${CHANNELS:="1"}
 : ${CHAINCODES:="1"}
 : ${ENDORSERS:="4"}
-: ${TIMEOUT:="100"}
+: ${TIMEOUT:="30"}
 COUNTER=0
 MAX_RETRY=5
 
 # find address of orderer and peers in your network
-ORDERER_IP=`perl -e 'use Socket; $a = inet_ntoa(inet_aton("orderer")); print "$a\n";'`
-PEER0_IP=`perl -e 'use Socket; $a = inet_ntoa(inet_aton("peer0")); print "$a\n";'`
-PEER1_IP=`perl -e 'use Socket; $a = inet_ntoa(inet_aton("peer1")); print "$a\n";'`
-PEER2_IP=`perl -e 'use Socket; $a = inet_ntoa(inet_aton("peer2")); print "$a\n";'`
-PEER3_IP=`perl -e 'use Socket; $a = inet_ntoa(inet_aton("peer3")); print "$a\n";'`
+#ORDERER_IP=`perl -e 'use Socket; $a = inet_ntoa(inet_aton("orderer")); print "$a\n";'`
+#PEER0_IP=`perl -e 'use Socket; $a = inet_ntoa(inet_aton("peer0")); print "$a\n";'`
+#PEER1_IP=`perl -e 'use Socket; $a = inet_ntoa(inet_aton("peer1")); print "$a\n";'`
+#PEER2_IP=`perl -e 'use Socket; $a = inet_ntoa(inet_aton("peer2")); print "$a\n";'`
+#PEER3_IP=`perl -e 'use Socket; $a = inet_ntoa(inet_aton("peer3")); print "$a\n";'`
 
-echo "-----------------------------------------"
-echo "Orderer IP $ORDERER_IP"
-echo "PEER0 IP $PEER0_IP"
-echo "PEER1 IP $PEER1_IP"
-echo "PEER2 IP $PEER2_IP"
-echo "PEER3 IP $PEER3_IP"
+#echo "-----------------------------------------"
+#echo "Orderer IP $ORDERER_IP"
+#echo "PEER0 IP $PEER0_IP"
+#echo "PEER1 IP $PEER1_IP"
+#echo "PEER2 IP $PEER2_IP"
+#echo "PEER3 IP $PEER3_IP"
 
 
-echo "Channel name prefix: $CHANNEL_NAME"
-echo "Total channels: $CHANNELS"
-echo "Total Chaincodes: $CHAINCODES"
-echo "Total Endorsers: $ENDORSERS"
-echo "-----------------------------------------"
+#echo "Channel name prefix: $CHANNEL_NAME"
+#echo "Total channels: $CHANNELS"
+#echo "Total Chaincodes: $CHAINCODES"
+#echo "Total Endorsers: $ENDORSERS"
+#echo "-----------------------------------------"
 
 verifyResult () {
 	if [ $1 -ne 0 ] ; then
@@ -59,7 +59,7 @@ setGlobals () {
 
 createChannel() {
 	CHANNEL_NUM=$1
-	peer channel create -o $ORDERER_IP:7050 -c $CHANNEL_NAME$CHANNEL_NUM -f crypto/orderer/channel$CHANNEL_NUM.tx >&log.txt
+	peer channel create -o orderer:7050 -c $CHANNEL_NAME$CHANNEL_NUM -f crypto/orderer/channel$CHANNEL_NUM.tx >&log.txt
 	res=$?
 	cat log.txt
 	verifyResult $res "Channel creation with name \"$CHANNEL_NAME$CHANNEL_NUM\" has failed"
@@ -104,7 +104,7 @@ installChaincode () {
 		do
 			PEER=$i
 			setGlobals $PEER
-			peer chaincode install -n mycc$ch -v 1 -p github.com/hyperledger/fabric/examples/chaincode/go/chaincode_example02 >&log.txt
+			peer chaincode install -n mycc$ch -v 1 -p github.com/hyperledger/fabric/examples/chaincode/go/newkeyperinvoke >&log.txt
 			res=$?
 			cat log.txt
 		        verifyResult $res "Chaincode 'mycc$ch' installation on remote peer PEER$PEER has Failed"
@@ -121,9 +121,7 @@ instantiateChaincode () {
 	do
 		for (( ch=0; $ch<$CHAINCODES; ch++))
 		do
-			#PEER=` expr $ch \/ 4`
-			#setGlobals $PEER
-			peer chaincode instantiate -o $ORDERER_IP:7050 -C $CHANNEL_NAME$i -n mycc$ch -v 1 -c '{"Args":["init","a","1000","b","2000"]}' -P "OR	('Org0MSP.member','Org1MSP.member')" >&log.txt
+			peer chaincode instantiate -o orderer:7050 -C $CHANNEL_NAME$i -n mycc$ch -v 1 -c '{"Args":[""]}' -P "OR	('Org0MSP.member','Org1MSP.member')" >&log.txt
 			res=$?
 			cat log.txt
 			verifyResult $res "Chaincode 'mycc$ch' instantiation on PEER$PEER on channel '$CHANNEL_NAME$i' failed"
@@ -137,7 +135,8 @@ chaincodeInvoke () {
         local channel_num=$1
 	local chain_num=$2
         local peer=$3
-	peer chaincode invoke -o $ORDERER_IP:7050  -C $CHANNEL_NAME$channel_num -n mycc$chain_num -c '{"Args":["invoke","a","b","10"]}' >&log.txt
+        local key_value=$CHANNEL_NAME$channel_num"mycc"$chain_num"PEER"$peer
+	peer chaincode invoke -o orderer:7050  -C $CHANNEL_NAME$channel_num -n mycc$chain_num -c "{\"function\":\"invoke\",\"Args\":[\"put\", \"$key_value\",\"$key_value\"]}" >&log.txt
 	res=$?
 	cat log.txt
 	verifyResult $res "Invoke execution on PEER$peer failed "
@@ -149,7 +148,7 @@ chaincodeQuery () {
   local channel_num=$1
   local chain_num=$2
   local peer=$3
-  local res=$4
+  local key_value=$CHANNEL_NAME$channel_num"mycc"$chain_num"PEER"$peer
   echo "===================== Querying on PEER$peer on $CHANNEL_NAME$channel_num/mycc$chain_num... ===================== "
   local rc=1
   local starttime=$(date +%s)
@@ -160,9 +159,9 @@ chaincodeQuery () {
   do
      sleep 3
      echo "Attempting to Query PEER$peer ...$(($(date +%s)-starttime)) secs"
-     peer chaincode query -C $CHANNEL_NAME$channel_num -n mycc$chain_num -c '{"Args":["query","a"]}' >&log.txt
+     peer chaincode query -C $CHANNEL_NAME$channel_num -n mycc$chain_num -c "{\"function\":\"invoke\",\"Args\":[\"get\",\"$key_value\"]}" >&log.txt
      test $? -eq 0 && VALUE=$(cat log.txt | awk '/Query Result/ {print $NF}')
-     test "$VALUE" = "$res" && let rc=0
+     test "$VALUE" = "$key_value" && let rc=0
   done
   echo
   cat log.txt
@@ -171,6 +170,7 @@ chaincodeQuery () {
 	echo
   else
 	echo "!!!!!!!!!!!!!!! Query result on PEER$peer is INVALID !!!!!!!!!!!!!!!!"
+	echo "~~~~~~~~~~~~~~~ Expected $res, and received $VALUE ~~~~~~~~~~~~~~~"
         echo "================== ERROR !!! FAILED to execute End-2-End Scenario =================="
 	echo
 	echo "Total execution time $(($(date +%s)-START_TIME)) secs"
@@ -201,21 +201,19 @@ installChaincode
 #Instantiate chaincode on Peer2/Org1
 echo "Instantiating chaincode on all channels on PEER0 ..."
 instantiateChaincode 0
-
+sleep 20
 #Invoke/Query on all chaincodes on all channels
-echo "send Invokes/Queries on all channels ..."
+echo "send Invokes followed by Queries on all channels..."
 for (( ch=0; $ch<$CHANNELS; ch++))
 do
 	for (( chain=0; $chain<$CHAINCODES; chain++))
 	do
-                AVAL=1000
+                AVAL="ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 		for (( peer_number=0;peer_number<4;peer_number++))
 		do
 			setGlobals "$peer_number"
-			chaincodeQuery $ch $chain $peer_number "$AVAL"
 			chaincodeInvoke $ch $chain $peer_number
-			AVAL=` expr $AVAL - 10 `
-			chaincodeQuery $ch $chain $peer_number "$AVAL"
+			chaincodeQuery $ch $chain $peer_number #"$AVAL$peer_number"
 		done
 	done
 done
