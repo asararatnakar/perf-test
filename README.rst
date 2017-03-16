@@ -85,7 +85,22 @@ specific steps manually. The quickest way to run the test is:
 
 .. code:: bash
 
-    ./network_setup.sh up [<channel-ID> [<numChannels> [<numChainCodesPerChannel> [<numPeers>]]]]
+    Usage: 
+      network_setup.sh [channel-name] [total-channels] [chaincodes] [endorsers count] [tls]  <up|down|retstart>
+
+./network_setup.sh -n 'channel-name' -C 2 -c 3 -e 4 restart
+		-n       channel name
+		-C       # of Channels that can be created
+		-c       # of Chaincodes that can be created
+		-e       # of endorsers that can be used for tests
+		-t       Enable TLS
+
+		up       Launch the network and start the test
+
+		down     teardown the network and the test
+
+		retstart Restart the network and start the test
+
 
 If you choose not to pass the ``channel-ID`` parameter, then
 your channel will default to ``mychannel``. Other defaults are:
