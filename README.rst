@@ -35,8 +35,7 @@ Prerequisites
    .. code:: bash
 
        cd $GOPATH/src/github.com/hyperledger/fabric/examples
-       git clone https://github.com/asararatnakar/perf-test
-       mv perf-test e2e
+       git clone https://github.com/asararatnakar/perf-test e2e
    
 -  Make the ``configtxgen`` tool.
 
