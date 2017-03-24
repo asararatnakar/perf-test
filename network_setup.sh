@@ -11,6 +11,7 @@ function usage () {
 	echo "		-C       # of Channels that can be created"
 	echo "		-c       # of Chaincodes that can be created"
 	echo "		-e       # of endorsers that can be used for tests"
+	echo "		-f       provide docker compose file"
 	echo "		-t       Enable TLS"
 	echo "		up       Launch the network and start the test"
 	echo "		down     teardown the network and the test"
@@ -72,7 +73,7 @@ function networkDown () {
 }
 
 ##process all the options
-while getopts "tC:c:e:n:h" opt; do
+while getopts "tC:c:e:n:f:h" opt; do
   case "${opt}" in
     n)
       CH_NAME="$OPTARG"
